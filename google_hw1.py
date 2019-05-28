@@ -30,7 +30,7 @@ def make_dictionary():
     return word_dictionary
 
 # Beautiful Soupの情報からスクレイピングし、best_wordを探す
-def scrape(soup : BeautifulSoup, stop_wordlist : list) -> list:
+def scrape(soup : BeautifulSoup) -> list:
     word_text = ''
     best_word = ''
     one_point = []
@@ -61,7 +61,7 @@ def scrape(soup : BeautifulSoup, stop_wordlist : list) -> list:
             # 辞書とスクレイピングした単語の要素の差分をとる
             sub_counter = row['counter'] - word_counter
             # 差分がない(辞書の単語の要素 ⊃ スクレイピングした単語)かつストップワードでないか
-            if sub_counter == Counter() and row['word_name'] not in stop_wordlist:
+            if sub_counter == Counter() :
                 for k, v in dict(row['counter']).items():
                     score += (v*1 if k in one_point else v*2 if k in two_points else v*3)
                 score += 1
@@ -80,11 +80,9 @@ def scrape(soup : BeautifulSoup, stop_wordlist : list) -> list:
 
 # Webページの一連の手続きを行い、打ち切るべきかどうか('No')、正常に進んだか('Yes')判断する
 def web_procedure(procedure_list : list) -> str:
-    print(return_list[0])
     # ひと単語のスコアが160以下の場合'No'を返し、打ち切る
     if return_list[1] <= 160:
         return 'No'
-    print('best_word :'+str(return_list[0]))
     driver.find_element_by_xpath("//input[@id='MoveField']").send_keys(return_list[0])
     driver.find_element_by_xpath("//input[@value='Submit']").click()
     time.sleep(0.5)
@@ -107,14 +105,14 @@ while (whole_score < 1700):
     driver.get(url)
     whole_score = 0
 
+
+    # 10回ゲームを繰り返す
     for var in range(0, 10):
         print(var)
-        stop_wordlist = []
         data = driver.page_source.encode('utf-8')
         soup = BeautifulSoup(data,"html.parser")
-    #     print(soup)
-        print(stop_wordlist)
-        return_list = scrape(soup,stop_wordlist) 
+        return_list = scrape(soup) 
+        print('best_word :'+str(return_list[0]))
         return_str = web_procedure(return_list)
         if return_str == 'Yes':
             pass
@@ -124,6 +122,7 @@ while (whole_score < 1700):
     print('whole_score :'+str(whole_score))
 
     
+# 10回終わったら、自動でスコアを提出
 driver.find_element_by_xpath("//input[@name='NickName']").send_keys('Momo')
 driver.find_element_by_xpath("//input[@name='URL']").send_keys('https://github.com/momom-ito/hw1')
 driver.find_element_by_xpath("//input[@name='PublicURL']").click()
