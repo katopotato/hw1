@@ -124,7 +124,6 @@ while (whole_score < 1700):
         print(stop_wordlist)
         return_list = scrape(soup,stop_wordlist) 
         return_str = web_procedure(return_list)
-        print(return_str)
         if return_str == 'Yes':
             pass
         elif return_str == 'No':
