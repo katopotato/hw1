@@ -14,26 +14,16 @@ from collections import Counter
 #辞書(Dataframe)を作成
 def make_dictionary():
     global word_dictionary
-    data = pd.read_csv('ejdic-hand-utf8.txt', sep="\t", header=None, error_bad_lines=False)
+    data = pd.read_csv('dictionary.words', sep="\t", header=None, error_bad_lines=False)
     word_list = []
     counter_list = []
     len_list = []
-    for row in data.iloc[:,0]:
-        # 複数意味を持つ単語の中に", "が含まれていれば分ける
-        split_row = re.split(r'[, | |,|\(]', str(row))
-        for word in split_row:
-            # 余分な記号を持った単語は省く(複数の単語から成る単語などが多いから
-            if re.search(r'[-|\0|\'|.|@]', word):
-                continue
-            else:
-                # 丸がっこは省く
-                modified_word = re.sub(r'[\)]','',word)
-                # quは省いた記号の@で置換
-                modified_counter_word = modified_word.lower().replace('qu','@')
-                # リストにアペンド
-                word_list.append(modified_word.lower())
-                counter_list.append(Counter(modified_counter_word))
-                len_list.append(len(modified_word))
+    for row in data.iloc[:,0]: 
+        modified_counter_word = str(row).lower().replace('qu','@')
+        # リストにアペンド
+        word_list.append(str(row).lower())
+        counter_list.append(Counter(modified_counter_word))
+        len_list.append(len(str(row)))
     # DataFrameに格納
     word_dictionary = pd.DataFrame({'len':len_list, 'counter':counter_list, 'word_name':word_list})
     word_dictionary = word_dictionary.drop_duplicates(subset='word_name').reset_index(drop=True)
@@ -88,30 +78,32 @@ def scrape(soup : BeautifulSoup, stop_wordlist : list) -> list:
     print(best_score)
     return [best_word, best_score]
 
-# Webページの一連の手続きを行い、打ち切るべきかどうか('No')、繰り返さなければならないか('Repeat')、正常に進んだか('Yes')判断する
+# Webページの一連の手続きを行い、打ち切るべきかどうか('No')、正常に進んだか('Yes')判断する
 def web_procedure(procedure_list : list) -> str:
     print(return_list[0])
+    # ひと単語のスコアが160以下の場合'No'を返し、打ち切る
     if return_list[1] <= 160:
         return 'No'
     print('best_word :'+str(return_list[0]))
     driver.find_element_by_xpath("//input[@id='MoveField']").send_keys(return_list[0])
-    driver.save_screenshot('screen.png')
     driver.find_element_by_xpath("//input[@value='Submit']").click()
     time.sleep(0.5)
     driver.save_screenshot('screen_after_click.png')
     print(driver.find_elements_by_xpath("//p[@class='error']"))
-    if driver.find_elements_by_xpath("//p[@class='error']") != []:
-        return 'Repeat'
+    # 160より大きいスコアの時のみ'Yes'を返し処理を続行する
     return 'Yes'
 
 
 
 make_dictionary()
 whole_score = 0
+
+# 全体のスコアが1700以上になるまで繰り返す
 while (whole_score < 1700):
     
-    url = 'https://icanhazwordz.appspot.com/'
+    url = 'http://icanhazwordz.appspot.com/'
     driver = webdriver.PhantomJS()
+    time.sleep(0.5)
     driver.get(url)
     whole_score = 0
 
@@ -128,18 +120,6 @@ while (whole_score < 1700):
             pass
         elif return_str == 'No':
             break
-        else :
-            while not return_str != 'Repeat':
-                print('Repeat!')
-                stop_wordlist.append(return_list[0]) 
-                print(stop_wordlist)
-                return_list = scrape(soup,stop_wordlist) 
-                return_str = web_procedure(return_list)
-                print(return_str)
-            if return_str == 'Yes':
-                pass
-            elif return_str == 'No':
-                break
         whole_score += return_list[1]
     print('whole_score :'+str(whole_score))
 
